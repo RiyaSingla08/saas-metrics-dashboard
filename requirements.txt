@@ -5,3 +5,4 @@ pandas==2.2.2
 plotly==5.22.0
 faker==25.9.1
 pytest==8.2.2
+python-dateutil==2.9.0
