@@ -129,11 +129,25 @@ def get_cohort_retention() -> pd.DataFrame:
     return df
 
 
+def get_new_customers_by_month() -> pd.DataFrame:
+    """New customer signups per month, used for the active-customers delta."""
+    con = _connect()
+    df = con.execute("""
+        SELECT date_trunc('month', signup_date) AS month, COUNT(*) AS new_customers
+        FROM customers
+        GROUP BY 1
+        ORDER BY 1
+    """).df()
+    con.close()
+    return df
+
+
 def get_kpi_summary() -> dict:
-    """Headline numbers for the top KPI cards: current MRR, churn, avg LTV, active customers."""
+    """Headline numbers for the top KPI cards, including month-over-month deltas."""
     mrr_df = get_mrr_by_month()
     churn_df = get_churn_by_month()
     ltv_df = get_ltv_by_customer()
+    new_cust_df = get_new_customers_by_month()
 
     con = _connect()
     active_customers = con.execute(
@@ -141,10 +155,25 @@ def get_kpi_summary() -> dict:
     ).fetchone()[0]
     con.close()
 
+    current_mrr = mrr_df["mrr"].iloc[-1] if len(mrr_df) else 0
+    prev_mrr = mrr_df["mrr"].iloc[-2] if len(mrr_df) > 1 else 0
+    mrr_delta_pct = ((current_mrr - prev_mrr) / prev_mrr * 100) if prev_mrr else 0
+
+    current_churn = churn_df["churn_rate_pct"].iloc[-1] if len(churn_df) else 0
+    prev_churn = churn_df["churn_rate_pct"].iloc[-2] if len(churn_df) > 1 else 0
+    churn_delta_pts = current_churn - prev_churn
+
+    new_this_month = new_cust_df["new_customers"].iloc[-1] if len(new_cust_df) else 0
+    churned_this_month = churn_df["churned_this_month"].iloc[-1] if len(churn_df) else 0
+    net_new_customers = new_this_month - churned_this_month
+
     return {
-        "current_mrr": mrr_df["mrr"].iloc[-1] if len(mrr_df) else 0,
-        "prev_mrr": mrr_df["mrr"].iloc[-2] if len(mrr_df) > 1 else 0,
-        "current_churn_pct": churn_df["churn_rate_pct"].iloc[-1] if len(churn_df) else 0,
+        "current_mrr": current_mrr,
+        "prev_mrr": prev_mrr,
+        "mrr_delta_pct": mrr_delta_pct,
+        "current_churn_pct": current_churn,
+        "churn_delta_pts": churn_delta_pts,
         "avg_ltv": ltv_df["lifetime_value"].mean() if len(ltv_df) else 0,
         "active_customers": active_customers,
+        "net_new_customers": net_new_customers,
     }
