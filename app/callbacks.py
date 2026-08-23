@@ -9,7 +9,8 @@ pipeline works end to end. Step 6 adds callbacks for the actual charts.
 
 from dash import Input, Output, callback
 
-from app.queries import get_kpi_summary, get_mrr_by_month
+from app.queries import get_kpi_summary, get_mrr_by_month, get_churn_by_month
+from app.charts import build_mrr_chart, build_churn_chart
 
 
 def register_callbacks(app):
@@ -18,9 +19,11 @@ def register_callbacks(app):
         Output("kpi-churn", "children"),
         Output("kpi-ltv", "children"),
         Output("kpi-customers", "children"),
+        Output("mrr-chart", "figure"),
+        Output("churn-chart", "figure"),
         Input("plan-filter", "value"),
     )
-    def update_kpis(selected_plan_ids):
+    def update_dashboard(selected_plan_ids):
         # KPI cards use whole-business numbers (not plan-filtered) except MRR,
         # which respects the plan filter so you can see e.g. "Enterprise-only MRR".
         summary = get_kpi_summary()
@@ -33,4 +36,8 @@ def register_callbacks(app):
         ltv_text = f"${summary['avg_ltv']:,.0f}"
         customers_text = f"{summary['active_customers']:,}"
 
-        return mrr_text, churn_text, ltv_text, customers_text
+        mrr_fig = build_mrr_chart(mrr_df)
+        churn_df = get_churn_by_month()  # churn isn't plan-filtered (whole-customer event)
+        churn_fig = build_churn_chart(churn_df)
+
+        return mrr_text, churn_text, ltv_text, customers_text, mrr_fig, churn_fig

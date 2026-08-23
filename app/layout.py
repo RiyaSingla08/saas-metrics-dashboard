@@ -74,29 +74,32 @@ def build_kpi_row():
     )
 
 
-def build_chart_placeholders():
+def build_charts_row():
     """
-    Empty bordered boxes where Step 6 will insert dcc.Graph components.
-    Having named placeholders now means callbacks can already reference
-    these ids before the real charts exist.
+    Row containing the two live charts. Actual figures are populated by
+    the callback in callbacks.py -- these start empty and get filled in
+    on page load (and any time the plan filter changes).
     """
-    placeholder_style = {
-        "height": "320px",
-        "display": "flex",
-        "alignItems": "center",
-        "justifyContent": "center",
-        "border": "1px dashed #ccc",
-        "borderRadius": "8px",
-        "color": "#999",
-    }
     return dbc.Row(
         [
             dbc.Col(
-                dbc.Card(html.Div("MRR chart coming in Step 6", style=placeholder_style), body=True),
+                dbc.Card(
+                    [
+                        html.H6("Monthly Recurring Revenue", className="mb-2"),
+                        dcc.Graph(id="mrr-chart", config={"displayModeBar": False}),
+                    ],
+                    body=True,
+                ),
                 width=6,
             ),
             dbc.Col(
-                dbc.Card(html.Div("Churn chart coming in Step 6", style=placeholder_style), body=True),
+                dbc.Card(
+                    [
+                        html.H6("Churn Rate", className="mb-2"),
+                        dcc.Graph(id="churn-chart", config={"displayModeBar": False}),
+                    ],
+                    body=True,
+                ),
                 width=6,
             ),
         ],
@@ -116,7 +119,7 @@ def build_layout():
                             dbc.Col(
                                 [
                                     build_kpi_row(),
-                                    build_chart_placeholders(),
+                                    build_charts_row(),
                                 ],
                                 width=9,
                             ),
